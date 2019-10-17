@@ -1,16 +1,16 @@
-import requests
+import json
 from ast import literal_eval
+from functools import wraps
 
-import appdaemon.adbase as adbase
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 import appdaemon.adapi as adapi
+import appdaemon.adbase as adbase
 import appdaemon.utils as utils
-
 from appdaemon.appdaemon import AppDaemon
 
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-from functools import wraps
 
 
 def hass_check(func):
@@ -54,6 +54,40 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         self.register_constraint("constrain_presence")
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
+
+    #
+    # Users
+    #
+    @hass_check
+    def get_user(self, name=None, user_id=None):
+        """Return user info based on input data."""
+        user_list = self._get_hass_users()
+        if not name and not user_id:
+            return user_list
+
+        if name and user_id:
+            if user_list.get(user_id) == name:
+                return True
+
+        elif user_id:
+            return user_list.get(user_id)
+
+        elif name:
+            for _user_id, _name in user_list.items():
+                if _name == name:
+                    return _user_id
+        return None
+
+    def _get_hass_users(self):
+        """Get list of users from auth file."""
+        config_dir = self.get_plugin_config()["config_dir"]
+        path = f"{config_dir}/.storage/auth"
+        with open(path) as json_file:
+            user_list = json.load(json_file)
+        users = {}
+        for user in user_list["data"]["users"]:
+            users[user["id"]] = user["name"]
+        return users
 
     #
     # Device Trackers
