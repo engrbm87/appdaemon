@@ -55,7 +55,9 @@ class Utility:
         #
         # Start the web server
         #
-        await self.AD.http.start_server()
+        
+        if self.AD.http != None:
+            await self.AD.http.start_server()
 
         #
         # Wait for all plugins to initialize
@@ -69,16 +71,34 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
-            #
-            # Register set_state services
-            #
             for ns in await self.AD.state.list_namespaces():
-                self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                
+                #
+                # Register set_state services
+                #
+            
+                # only default, rules or it belongs to a local plugin. Don't allow for admin/appdaemon/global namespaces
+
+                if ns in ["default", "rules"] or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces: 
+                    self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
+                
+                #
+                # Register fire_event services
+                #
+                
+                self.AD.services.register_service(ns, "event", "fire", self.AD.events.event_services)
+            
+            
 
             #
             # Register run_sequence service
             #
             self.AD.services.register_service("rules", "sequence", "run", self.AD.sequences.run_sequence_service)
+            
+            #
+            # Register production_mode service
+            #
+            self.AD.services.register_service("appdaemon", "production_mode", "set", self.production_mode_service)
 
             #
             # Start the scheduler
@@ -181,7 +201,9 @@ class Utility:
             #
             # Shutdown webserver
             #
-            await self.AD.http.stop_server()
+            
+            if self.AD.http != None:
+                await self.AD.http.stop_server()
 
     async def set_production_mode(self, mode=True):
         if mode is True:
@@ -189,3 +211,11 @@ class Utility:
         else:
             self.logger.info("AD Production Mode Deactivated")
         self.AD.production_mode = mode
+    
+    async def production_mode_service(self, ns, domain, service, kwargs):
+        if "mode" in kwargs:
+            mode = kwargs["mode"]
+            await self.set_production_mode(mode)
+        else:
+            self.logger.warning("'Mode' not specified in service call")
+            

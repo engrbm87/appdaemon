@@ -1,8 +1,24 @@
 Change Log
 ==========
 
-4.0.0 Beta 2
-------------
+4.0.0
+-----
+
+**Features**
+
+- Added events for when an app is initialized or terminated
+- Added `event_fire` service call
+- Added `production_mode` service call
+
+**Fixes**
+
+- Fixed an issue, where when ``http`` is disabled in ``appdaemon.yaml``, AD is unable to start
+- Fixed issue where the user could potentially create entities in `admin`, `global` or `appdaemon` namespaces
+
+**Breaking Changes**
+
+4.0.0 Beta 2 (2019-10-19)
+-------------------------
 
 **Features**
 
